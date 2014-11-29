@@ -58,6 +58,7 @@ function getWeatherData() {
 app.use(function(req, res, next) {
     if (!res.locals.partials) res.locals.partials = {};
     res.locals.partials.weather = getWeatherData();
+    // debugger;
     next();
 });
 
@@ -111,3 +112,4 @@ app.listen(app.get('port'), function() {
     console.log('Express started on http://localhost:' +
         app.get('port') + '; press Ctrl-C to terminate.');
 });
+
