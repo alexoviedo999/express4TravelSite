@@ -9,8 +9,11 @@
   "author": "alexoviedo999",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.9.3",
     "express": "^4.10.2",
-    "express3-handlebars": "^0.5.2"
+    "express3-handlebars": "^0.5.2",
+    "formidable": "^1.0.15",
+    "bootstrap": "^3.3"
   },
   "devDependencies": {
     "chai": "^1.10.0",
