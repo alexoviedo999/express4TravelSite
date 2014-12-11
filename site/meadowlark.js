@@ -1,5 +1,6 @@
 var express = require('express');
 var fortune = require('./lib/fortune.js');
+var credentials = require('./credentials.js');
 
 var app = express();
 
@@ -22,6 +23,8 @@ app.set('port', process.env.PORT || 3000);
 
 app.use(express.static(__dirname + '/public'));
 app.use(require('body-parser')());
+app.use(require('cookie-parser')(credentials.cookieSecret));
+app.use(require('express-session')());
 
 // set 'showTests' context property if the querystring contains test=1
 app.use(function(req, res, next) {
@@ -64,6 +67,14 @@ app.use(function(req, res, next) {
     next();
 });
 
+app.use(function(req, res, next) {
+    // if there's a flash message, transfer
+    // it to the context, then clear it
+    res.locals.flash = req.session.flash;
+    delete req.session.flash;
+    next();
+});
+
 app.get('/', function(req, res) {
     res.render('home');
 });
@@ -75,9 +86,12 @@ app.get('/about', function(req, res) {
 });
 app.get('/tours/hood-river', function(req, res) {
     res.render('tours/hood-river');
+    res.cookie('monster', 'nom nom');
+
 });
 app.get('/tours/oregon-coast', function(req, res) {
     res.render('tours/oregon-coast');
+    req.session.userName = 'test44';
 });
 app.get('/tours/request-group-rate', function(req, res) {
     res.render('tours/request-group-rate');
@@ -109,13 +123,49 @@ app.get('/newsletter', function(req, res) {
 	});
 });
 
-// app.post('/process', function(req, res) {
-// 	console.log('Form (from querystring): ' + req.query.form);
-// 	console.log('CSRF token (from hidden form field): ' + req.body._csrf);
-// 	console.log('Name (from visible form field): ' + req.body.name);
-// 	console.log('Email (from visible form field): ' + req.body.email);
-// 	res.redirect(303, '/thank-you');
-// });
+
+function NewsletterSignup(){
+}
+NewsletterSignup.prototype.save = function(cb){
+    cb();
+}
+
+var VALID_EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
+app.post('/newsletter', function(req, res){
+    var name = req.body.name || '', email = req.body.email || '';
+    // input validation
+    if(!email.match(VALID_EMAIL_REGEX)) {
+        if(req.xhr) return res.json({ error: 'Invalid name email address.' });
+        req.session.flash = {
+            type: 'danger',
+            intro: 'Validation error!',
+            message: 'The email address you entered was  not valid.',
+        };
+        return res.redirect(303, '/newsletter/archive');
+    }
+    new NewsletterSignup({ name: name, email: email }).save(function(err){
+        if(err) {
+            if(req.xhr) return res.json({ error: 'Database error.' });
+            req.session.flash = {
+                type: 'danger',
+                intro: 'Database error!',
+                message: 'There was a database error; please try again later.',
+            }
+            return res.redirect(303, '/newsletter/archive');
+        }
+        if(req.xhr) return res.json({ success: true });
+        req.session.flash = {
+            type: 'success',
+            intro: 'Thank you!',
+            message: 'You have now been signed up for the newsletter.',
+        };
+        return res.redirect(303, '/newsletter/archive');
+    });
+});
+app.get('/newsletter/archive', function(req, res){
+    res.render('newsletter/archive');
+});
 
 app.post('/process', function(req, res) {
 	if (req.xhr || req.accepts('json,html') === 'json') {
