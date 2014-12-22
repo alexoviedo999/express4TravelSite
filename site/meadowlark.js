@@ -1,6 +1,8 @@
 var express = require('express');
 var fortune = require('./lib/fortune.js');
 var credentials = require('./credentials.js');
+var cartValidation = require('./lib/cartValidation.js');
+var connect = require('connect');
 
 var app = express();
 
@@ -25,6 +27,8 @@ app.use(express.static(__dirname + '/public'));
 app.use(require('body-parser')());
 app.use(require('cookie-parser')(credentials.cookieSecret));
 app.use(require('express-session')());
+app.use(cartValidation.checkWaivers);
+app.use(cartValidation.checkGuestCounts);
 
 // set 'showTests' context property if the querystring contains test=1
 app.use(function(req, res, next) {
